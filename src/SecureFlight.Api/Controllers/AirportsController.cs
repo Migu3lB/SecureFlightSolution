@@ -50,7 +50,7 @@ public class AirportsController(
         }
         catch (Exception ex)
         {
-            return null; //(StatusCodes.Status500InternalServerError, ex.Message);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { Message = "An internal server error occurred.", Details = ex.Message });
         }
     }
 }
