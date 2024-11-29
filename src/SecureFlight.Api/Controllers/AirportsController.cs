@@ -4,6 +4,7 @@ using SecureFlight.Api.Models;
 using SecureFlight.Api.Utils;
 using SecureFlight.Core.Entities;
 using SecureFlight.Core.Interfaces;
+using System.Net;
 
 namespace SecureFlight.Api.Controllers;
 
@@ -23,22 +24,33 @@ public class AirportsController(
         var airports = await airportService.GetAllAsync();
         return MapResultToDataTransferObject<IReadOnlyList<Airport>, IReadOnlyList<AirportDataTransferObject>>(airports);
     }
-    
+
     [HttpPut("{code}")]
     [ProducesResponseType(typeof(AirportDataTransferObject), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status500InternalServerError, Type = typeof(ErrorResponseActionResult))]
     public async Task<IActionResult> Put([FromRoute] string code, AirportDataTransferObject airportDto)
     {
-        var airport = await airportRepository.GetByIdAsync(code);
-        if (airport is null)
+        try
         {
-            return NotFound($"Airport with code {code} not found.");
-        }
+            var airport = await airportRepository.GetByIdAsync(code);
+            if (airport is null)
+            {
+                return NotFound($"Airport with code {code} not found.");
+            }
 
-        airport.City = airportDto.City;
-        airport.Country = airportDto.Country;
-        airport.Name = airportDto.Name;
-        var result = airportRepository.Update(airport);
-        return MapResultToDataTransferObject<Airport, AirportDataTransferObject>(result);
+            airport.City = airportDto.City;
+            airport.Country = airportDto.Country;
+            airport.Name = airportDto.Name;
+
+            airportRepository.Update(airport);
+            await airportRepository.SaveChangesAsync();
+
+            return MapResultToDataTransferObject<Airport, AirportDataTransferObject>(airport);
+
+        }
+        catch (Exception ex)
+        {
+            return null; //(StatusCodes.Status500InternalServerError, ex.Message);
+        }
     }
 }
